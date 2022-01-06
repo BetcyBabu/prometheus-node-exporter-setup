@@ -1,0 +1,137 @@
+---
+
+- name: "Creating user prometheus"
+  when: inventory_hostname in groups['server']
+  user:
+    name: prometheus
+    create_home: no
+
+- name: "Downloading Prometheus"
+  when: inventory_hostname in groups['server']
+  get_url:
+    url: "{{ URL_prometheus }}"
+    dest: /home/
+
+
+- name: "Extracting prometheus-*.tar.gz"
+  when: inventory_hostname in groups['server']
+  unarchive:
+    remote_src: yes
+    src: /home/prometheus-{{ prometheus_version }}.linux-{{ prometheus_arch }}.tar.gz
+    dest: /home/
+
+
+- name: "Moving extracted files to a folder prometheus-files"
+  when: inventory_hostname in groups['server']
+  copy:
+    remote_src: yes
+    src: /home/prometheus-{{ prometheus_version }}.linux-{{ prometheus_arch }}/
+    dest: /home/prometheus-files/
+    owner: prometheus
+    group: prometheus
+
+- name: "Copy prometheus from prometheus-files to /usr/local/bin/"
+  when: inventory_hostname in groups['server']
+  copy:
+    remote_src: yes
+    src: /home/prometheus-files/prometheus
+    dest: /usr/local/bin/
+    owner: prometheus
+    group: prometheus
+    mode: 0755
+
+- name: "Copy promtool from prometheus-files to /usr/local/bin/"
+  when: inventory_hostname in groups['server']
+  copy:
+    remote_src: yes
+    src: /home/prometheus-files/promtool
+    dest: /usr/local/bin/
+    owner: prometheus
+    group: prometheus
+    mode: 0755
+
+- name: "Configuring Prometheus to monitor itself"
+  when: inventory_hostname in groups['server']
+  copy:
+    src: prometheus.yml
+    dest: /home/prometheus-files/
+    owner: prometheus
+    group: prometheus
+
+- name: "Creating Prometheus Service File"
+  when: inventory_hostname in groups['server']
+  copy:
+    src: prometheus.service
+    dest: /etc/systemd/system/
+  register: prometheus_status
+
+- name: "Restarting/Enabling Prometheus"
+  when: inventory_hostname in groups['server']
+  service:
+    name: prometheus
+    state: restarted
+    enabled: true
+
+
+- name: "Creating user node_exporter"
+  when: inventory_hostname in groups['targets']
+  user:
+    name: node_exporter
+    create_home: no
+
+- name: "Downloading node_exporter-1.3.1.linux-amd64.tar.gz"
+  when: inventory_hostname in groups['targets']
+  get_url:
+    url: "{{ node_exporter_URL }}"
+    dest: /home/
+
+- name: "Extracting node_exporter-1.3.1.linux-amd64.tar.gz"
+  when: inventory_hostname in groups['targets']
+  unarchive:
+    remote_src: yes
+    src: /home/node_exporter-{{ node_exporter_version }}.linux-{{ node_exporter_arch }}.tar.gz
+    dest: /home/
+
+- name: "Moving extracted files to a folder node_exporter-files"
+  when: inventory_hostname in groups['targets']
+  copy:
+    remote_src: yes
+    src: /home/node_exporter-{{ node_exporter_version }}.linux-{{ node_exporter_arch }}/
+    dest: /home/node_exporter-files/
+
+- name: "Copy node export binary to /usr/local/bin/"
+  when: inventory_hostname in groups['targets']
+  copy:
+    remote_src: yes
+    src: /home/node_exporter-files/node_exporter
+    dest: /usr/local/bin/
+    owner: node_exporter
+    group: node_exporter
+    mode: 0755
+
+- name: "Creating node_exporter Service File"
+  when: inventory_hostname in groups['targets']
+  copy:
+    src: node_exporter.service
+    dest: /etc/systemd/system/
+
+- name: "Restarting/Enabling node_exporter"
+  when: inventory_hostname in groups['targets']
+  service:
+    name: node_exporter
+    state: restarted
+    enabled: true 
+
+
+- name: "Uploading prometheus.yml"
+  when: inventory_hostname in groups['server']
+  template:
+    src: prometheus.yml.j2
+    dest: /home/prometheus-files/prometheus.yml
+
+- name: "Restarting/Enabling Prometheus"
+  when: inventory_hostname in groups['server']
+  service:
+    name: prometheus
+    state: restarted
+    enabled: true
