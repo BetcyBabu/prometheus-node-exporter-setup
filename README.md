@@ -55,6 +55,12 @@ Create a playbook, main.yml
 
 ```
 
+Here, I use the variables ```URL_prometheus``` to hold the prometheus download URL, ```prometheus_version``` for prometheus version, and for architecture, ```prometheus_arch```. Similary, for node exporter ```node_exporter_URL``` to hold the node_exporter download URL, ```node_exporter_version``` for node_exporter version, and for architecture, ```node_exporter_arch```. 
+
+```targets``` are remote machine in which node exported needs to be installed. 
+
+
+
 Testing connectivity to servers registered in hosts file,
 
 ```
